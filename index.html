@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="es" class="h-full">
+ <head><script src="/_sdk/telemetry_sdk.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Metal Poser Test</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&amp;family=Bebas+Neue&amp;display=swap" rel="stylesheet">
+  <style>
+    html, body { height: 100%; margin: 0; }
+    .font-gothic { font-family: 'UnifrakturMaguntia', cursive; }
+    .font-heading { font-family: 'Bebas Neue', sans-serif; }
+    @keyframes flame { 0%,100%{text-shadow:0 0 10px #ff0000,0 0 20px #cc0000} 50%{text-shadow:0 0 20px #ff3300,0 0 40px #ff0000} }
+    .flame-text { animation: flame 2s infinite; }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-3px)} 75%{transform:translateX(3px)} }
+    .shake { animation: shake 0.4s; }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full bg-black text-white overflow-auto">
+  <div id="app" class="h-full w-full flex flex-col items-center justify-center p-6" style="background: radial-gradient(ellipse at center, #1a0000 0%, #000000 70%);"><!-- Start Screen -->
+   <div id="screen-start" class="text-center max-w-lg">
+    <h1 id="main-title" class="font-gothic text-5xl md:text-7xl text-red-600 flame-text mb-6">¿Eres Poser o True?</h1>
+    <p class="font-heading text-xl text-gray-300 mb-8 tracking-wider">Demuestra que no eres un falso metalero. 10 preguntas. Sin piedad.</p><button onclick="startQuiz()" class="font-heading text-2xl tracking-widest bg-red-700 hover:bg-red-600 text-white px-10 py-4 border-2 border-red-500 transition-all hover:scale-105"> COMENZAR </button>
+   </div><!-- Quiz Screen -->
+   <div id="screen-quiz" class="hidden text-center max-w-2xl w-full">
+    <div class="flex justify-between items-center mb-4"><span id="q-counter" class="font-heading text-red-500 text-lg">1/10</span> <span id="q-score" class="font-heading text-gray-400 text-lg">Score: 0</span>
+    </div>
+    <div class="border border-red-900 bg-black/60 p-8 rounded">
+     <h2 id="q-text" class="font-heading text-2xl md:text-3xl text-white mb-8 tracking-wide"></h2>
+     <div id="q-options" class="grid gap-3"></div>
+    </div>
+   </div><!-- Result Screen -->
+   <div id="screen-result" class="hidden text-center max-w-lg">
+    <div id="result-icon" class="text-6xl mb-4"></div>
+    <h2 id="result-title" class="font-gothic text-4xl md:text-5xl mb-4"></h2>
+    <p id="result-desc" class="font-heading text-xl text-gray-300 mb-2 tracking-wide"></p>
+    <p id="result-score" class="font-heading text-lg text-red-500 mb-8"></p><button onclick="resetQuiz()" class="font-heading text-xl tracking-widest bg-red-700 hover:bg-red-600 text-white px-8 py-3 border-2 border-red-500 transition-all hover:scale-105"> INTENTAR DE NUEVO </button>
+   </div>
+  </div>
+  <script>
+    const questions = [
+      { q: "¿Cuál es el vocalista de Iron Maiden?", options: ["Bruce Dickinson","James Hetfield","Ozzy Osbourne","Rob Halford"], correct: 0 },
+      { q: "¿Qué álbum es de Metallica?", options: ["Paranoid","Master of Puppets","Painkiller","Reign in Blood"], correct: 1 },
+      { q: "¿De qué país es Rammstein?", options: ["Suecia","Noruega","Alemania","Finlandia"], correct: 2 },
+      { q: "¿Quién fue el baterista original de Black Sabbath?", options: ["Lars Ulrich","Bill Ward","Dave Lombardo","Neil Peart"], correct: 1 },
+      { q: "¿Qué banda tocó 'Ace of Spades'?", options: ["Judas Priest","AC/DC","Motörhead","Megadeth"], correct: 2 },
+      { q: "¿Quién es conocido como 'El Príncipe de las Tinieblas'?", options: ["Rob Zombie","Ozzy Osbourne","Marilyn Manson","Alice Cooper"], correct: 1 },
+      { q: "¿Qué banda lanzó 'The Number of the Beast'?", options: ["Slayer","Iron Maiden","Megadeth","Anthrax"], correct: 1 },
+      { q: "¿Dave Mustaine fue expulsado de qué banda?", options: ["Slayer","Anthrax","Metallica","Pantera"], correct: 2 },
+      { q: "¿Qué subgénero define a bandas como Cannibal Corpse?", options: ["Thrash Metal","Power Metal","Death Metal","Doom Metal"], correct: 2 },
+      { q: "¿Cuál es el logo icónico de Judas Priest?", options: ["Un murciélago","Una cruz invertida","Un tenedor de dos puntas","Eddie"], correct: 2 }
+    ];
+
+    let current = 0, score = 0, answered = false;
+
+    function startQuiz() {
+      current = 0; score = 0; answered = false;
+      document.getElementById('screen-start').classList.add('hidden');
+      document.getElementById('screen-result').classList.add('hidden');
+      document.getElementById('screen-quiz').classList.remove('hidden');
+      showQuestion();
+    }
+
+    function showQuestion() {
+      answered = false;
+      const q = questions[current];
+      document.getElementById('q-counter').textContent = `${current+1}/10`;
+      document.getElementById('q-score').textContent = `Score: ${score}`;
+      document.getElementById('q-text').textContent = q.q;
+      const container = document.getElementById('q-options');
+      container.innerHTML = '';
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'font-heading text-lg tracking-wide w-full py-3 px-4 border border-red-900 bg-black/40 text-gray-200 hover:bg-red-900/40 hover:text-white transition-all text-left';
+        btn.textContent = opt;
+        btn.onclick = () => selectAnswer(i, btn);
+        container.appendChild(btn);
+      });
+    }
+
+    function selectAnswer(i, btn) {
+      if (answered) return;
+      answered = true;
+      const q = questions[current];
+      const btns = document.getElementById('q-options').children;
+      if (i === q.correct) {
+        score++;
+        btn.classList.add('bg-green-900/60','border-green-500','text-green-300');
+      } else {
+        btn.classList.add('bg-red-900/60','border-red-500','text-red-300','shake');
+        btns[q.correct].classList.add('bg-green-900/60','border-green-500','text-green-300');
+      }
+      setTimeout(() => {
+        current++;
+        if (current < questions.length) showQuestion();
+        else showResult();
+      }, 1200);
+    }
+
+    function showResult() {
+      document.getElementById('screen-quiz').classList.add('hidden');
+      document.getElementById('screen-result').classList.remove('hidden');
+      const pct = score / questions.length;
+      const titleEl = document.getElementById('result-title');
+      const descEl = document.getElementById('result-desc');
+      const iconEl = document.getElementById('result-icon');
+      const config = window.elementSdk ? window.elementSdk.config : {};
+      
+      if (pct >= 0.8) {
+        titleEl.textContent = config.result_true || '¡Verdadero Metalero!';
+        titleEl.className = 'font-gothic text-4xl md:text-5xl mb-4 text-red-500 flame-text';
+        descEl.textContent = 'Tu sangre es metal fundido. ¡Horns up! 🤘';
+        iconEl.textContent = '🤘';
+      } else if (pct >= 0.5) {
+        titleEl.textContent = 'Medio Poser...';
+        titleEl.className = 'font-gothic text-4xl md:text-5xl mb-4 text-yellow-500';
+        descEl.textContent = 'Sabes algo, pero te falta calle metalera.';
+        iconEl.textContent = '😐';
+      } else {
+        titleEl.textContent = config.result_poser || '¡POSER TOTAL!';
+        titleEl.className = 'font-gothic text-4xl md:text-5xl mb-4 text-gray-400';
+        descEl.textContent = 'Vuelve cuando escuches algo más que lo que suena en la radio.';
+        iconEl.textContent = '💀';
+      }
+      document.getElementById('result-score').textContent = `Respuestas correctas: ${score}/10`;
+    }
+
+    function resetQuiz() { startQuiz(); }
+
+    // Element SDK
+    const defaultConfig = {
+      main_title: '¿Eres Poser?',
+      result_poser: '¡POSER TOTAL!',
+      result_true: '¡Verdadero Metalero!',
+      background_color: '#000000',
+      accent_color: '#dc2626',
+      text_color: '#ffffff',
+      font_family: 'Bebas Neue',
+      font_size: 16
+    };
+
+    window.elementSdk.init({
+      defaultConfig,
+      onConfigChange: async (config) => {
+        document.getElementById('main-title').textContent = config.main_title || defaultConfig.main_title;
+        document.getElementById('app').style.background = `radial-gradient(ellipse at center, ${config.accent_color || '#1a0000'}33 0%, ${config.background_color || '#000000'} 70%)`;
+      },
+      mapToCapabilities: (config) => ({
+        recolorables: [
+          { get: () => config.background_color || defaultConfig.background_color, set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+          { get: () => config.accent_color || defaultConfig.accent_color, set: (v) => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } },
+          { get: () => config.text_color || defaultConfig.text_color, set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } }
+        ],
+        borderables: [],
+        fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+        fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: (v) => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } }
+      }),
+      mapToEditPanelValues: (config) => new Map([
+        ['main_title', config.main_title || defaultConfig.main_title],
+        ['result_poser', config.result_poser || defaultConfig.result_poser],
+        ['result_true', config.result_true || defaultConfig.result_true]
+      ])
+    });
+
+    lucide.createIcons();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a0c732bff5b8cc76',t:'MTc4MTU4NTQ3NC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
